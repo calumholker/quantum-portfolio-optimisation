@@ -1,11 +1,17 @@
+import sys
+import remote_cirq
 import pennylane as qml
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-import tqdm
 
 wires = range(32)
-dev = qml.device('default.qubit', wires=wires)
+API_KEY = "AIzaSyAkLyvGHAIGGm8kT5SbzJB0Wi7dCT_4kPQ"
+sim = remote_cirq.RemoteSimulator(API_KEY)
+dev = qml.device("cirq.simulator",
+                 wires=wires,
+                 simulator=sim,
+                 analytic=False)
 data = np.load('data/preprocessed/prices_32_8.npy', allow_pickle=True)
 train = []
 for a in range(len(data[0])):
@@ -18,8 +24,7 @@ for a in range(len(data[0])):
 data = np.array(train)
 
 model = tf.keras.models.Sequential()
-model.add(tf.keras.layers.LayerNormalization(input_shape=[1, 40]))
-model.add(tf.keras.layers.Conv1D(filters=16, kernel_size=1, activation='relu'))
+model.add(tf.keras.layers.Conv1D(filters=16, kernel_size=1, activation='relu', input_shape=[1, 40]))
 model.add(tf.keras.layers.Conv1D(filters=16, kernel_size=1, activation='relu'))
 model.add(tf.keras.layers.Dense(units=128, activation='relu'))
 model.add(tf.keras.layers.Dense(units=1, activation='sigmoid'))
@@ -34,12 +39,13 @@ def generator(w):
 def gen_circuit(array, gen_weights):
     qml.templates.AngleEmbedding(array, wires, rotation='Y')
     generator(gen_weights)
+    print('yes')
     return [qml.expval(qml.PauliX(i)) for i in range(8)]
 
 
 def prob_real_true(array):
-    tensor = tf.convert_to_tensor(np.array(array).reshape(1,40))
-    true_disc_output = model(tensor)
+    tensor = tf.convert_to_tensor(np.array(array).reshape(1,1,40))
+    true_disc_output = model(tensor)[0][0]
     prob_real_true = (true_disc_output + 1) / 2
     return prob_real_true
 
@@ -47,9 +53,9 @@ def prob_fake_true(array, gen_weights):
     w = array[:32]
     f = np.array(gen_circuit(w, gen_weights))
     for i in f:
-        w.append(i)
-    tensor = tf.convert_to_tensor(np.array(w).reshape(1,40))
-    fake_disc_output = model(tensor)
+        w = np.append(w, i)
+    tensor = tf.convert_to_tensor(np.array(w).reshape(1,1,40))
+    fake_disc_output = model(tensor)[0][0]
     prob_fake_true = (fake_disc_output + 1) / 2
     return prob_fake_true
 
@@ -71,9 +77,11 @@ opt = tf.keras.optimizers.SGD(0.1)
 
 cost = lambda: disc_cost(gen_weights, disc_weights)
 
+print(len(data))
 for batch in data:
         dat = batch[0]
         for step in range(20):
+            print(step)
             opt.minimize(cost, gen_weights, disc_weights)
             cost_val = cost().numpy()
             print("Step {}: cost = {}".format(step, cost_val))
