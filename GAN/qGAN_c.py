@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from sklearn.utils import shuffle
 
 wires = range(32)
 API_KEY = "AIzaSyAkLyvGHAIGGm8kT5SbzJB0Wi7dCT_4kPQ"
@@ -14,9 +15,10 @@ dev = qml.device("cirq.simulator",
                  simulator=sim,
                  analytic=False)
 data = np.load('data/preprocessed/prices_32_8.npy', allow_pickle=True)
+
 train = []
-for a in range(len(data[0])):
-    for b in range(len(data)):
+for a in range(100):
+    for b in range(1):
         arr1 = [[]]
         arr1[0] = list(data[b][a][0])
         for bit in data[b][a][1]:
@@ -43,35 +45,6 @@ def gen_circuit(array, gen_weights):
     generator(gen_weights)
     return [qml.expval(qml.PauliX(i)) for i in range(8)]
 
-train_x = data
-train_y = y
-
-eps = 1e-2
-k = 3
-init_gen_weights = np.array([np.pi] + [0] * (32*(k+1)-1)) + np.random.normal(scale=eps, size=(32*(k+1),))
-gen_weights = tf.Variable(init_gen_weights)
-
-for i in tqdm(range(len(data))):
-    set = data[i][0]
-    w = set[:32]
-    f = np.array(gen_circuit(w, gen_weights))
-    for i in f:
-        w = np.append(w,i)
-    train_x.append([w])
-    train_y.append(0)
-
-print(len(train_x))
-print(len(train_y))
-
-
-
-"""
-def prob_real_true(array):
-    tensor = tf.convert_to_tensor(np.array(array).reshape(1,1,40))
-    true_disc_output = model(tensor)[0][0]
-    prob_real_true = (true_disc_output + 1) / 2
-    return prob_real_true
-
 def prob_fake_true(array, gen_weights):
     w = array[:32]
     f = np.array(gen_circuit(w, gen_weights))
@@ -82,37 +55,45 @@ def prob_fake_true(array, gen_weights):
     prob_fake_true = (fake_disc_output + 1) / 2
     return prob_fake_true
 
-def disc_cost(disc_weights):
-    w = []
-    for i in range(len(disc_weights)):
-        w.append(disc_weights[i].numpy())
-    model.set_weights(w)
-    cost = prob_fake_true(dat, gen_weights) - prob_real_true(dat)
-    return cost
+def gen_cost(gen_weights):
+    return -prob_fake_true(dat, gen_weights)
 
-def gen_cost(array, gen_weights):
-    return -prob_fake_true(array, gen_weights)
+def train_discriminator(model, data, y):
+    train_x = data
+    train_y = y
 
-np.random.seed(0)
+    for i in tqdm(range(len(data))):
+        set = data[i][0]
+        w = set[:32]
+        f = np.array(gen_circuit(w, gen_weights))
+        for i in f:
+            w = np.append(w,i)
+        np.append(train_x, [w])
+        np.append(train_y, 0)
+
+    np.save('train_x', train_x)
+    np.save('train_y', train_y)
+
+    train_x = shuffle(train_x, train_y)
+
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.fit(x_train, y_train, epochs=10, validation_split=0.3)
+
+def train_generator():
+    opt = tf.keras.optimizers.SGD(0.1)
+    cost = lambda: gen_cost(gen_weights)
+    for batch in data:
+            dat = batch[0]
+            for step in range(20):
+                print(step)
+                opt.minimize(cost, gen_weights)
+                cost_val = cost().numpy()
+                print("Step {}: cost = {}".format(step, cost_val))
+
 eps = 1e-2
 k = 3
 init_gen_weights = np.array([np.pi] + [0] * (32*(k+1)-1)) + np.random.normal(scale=eps, size=(32*(k+1),))
 gen_weights = tf.Variable(init_gen_weights)
-init_disc_weights = model.trainable_weights
-disc_weights = []
-for i in range(len(init_disc_weights)):
-    disc_weights.append(tf.Variable(tf.convert_to_tensor(init_disc_weights[i])))
 
-
-opt = tf.keras.optimizers.SGD(0.1)
-
-cost = lambda: disc_cost(disc_weights)
-
-for batch in data:
-        dat = batch[0]
-        for step in range(20):
-            print(step)
-            opt.minimize(cost, disc_weights)
-            cost_val = cost().numpy()
-            print("Step {}: cost = {}".format(step, cost_val))
-            """
+train_discriminator(model, data, y)
+train_generator()
