@@ -71,13 +71,13 @@ def train_discriminator(model, data, y):
         np.append(train_x, [w])
         np.append(train_y, 0)
 
-    np.save('train_x', train_x)
-    np.save('train_y', train_y)
+    np.save('training-data/train_x', train_x)
+    np.save('training-data/train_y', train_y)
 
     train_x = shuffle(train_x, train_y)
 
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    model.fit(x_train, y_train, epochs=10, validation_split=0.3)
+    model.fit(train_x, train_y, epochs=10, validation_split=0.3)
 
 def train_generator():
     opt = tf.keras.optimizers.SGD(0.1)
@@ -97,3 +97,6 @@ gen_weights = tf.Variable(init_gen_weights)
 
 train_discriminator(model, data, y)
 train_generator()
+
+np.save('models/generator-weights/gen_weights', gen_weights)
+model.save('models/discriminator/disc')
