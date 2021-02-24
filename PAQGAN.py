@@ -9,7 +9,7 @@ wires = range(32)
 API_KEY = "AIzaSyAkLyvGHAIGGm8kT5SbzJB0Wi7dCT_4kPQ"
 sim = remote_cirq.RemoteSimulator(API_KEY)
 dev = qml.device("cirq.simulator",
-                 wires=wires,
+                 wires=32,
                  simulator=sim,
                  analytic=False)
 data = np.load('data/preprocessed/prices_32_8.npy', allow_pickle=True)
@@ -39,7 +39,6 @@ def generator(w):
 def gen_circuit(array, gen_weights):
     qml.templates.AngleEmbedding(array, wires, rotation='Y')
     generator(gen_weights)
-    print('yes')
     return [qml.expval(qml.PauliX(i)) for i in range(8)]
 
 
@@ -59,8 +58,11 @@ def prob_fake_true(array, gen_weights):
     prob_fake_true = (fake_disc_output + 1) / 2
     return prob_fake_true
 
-def disc_cost(gen_weights, disc_weights):
-    model.set_weights(disc_weights)
+def disc_cost(disc_weights):
+    w = []
+    for i in range(len(disc_weights)):
+        w.append(disc_weights[i].numpy())
+    model.set_weights(w)
     cost = prob_fake_true(dat, gen_weights) - prob_real_true(dat)
     return cost
 
@@ -72,16 +74,20 @@ eps = 1e-2
 k = 3
 init_gen_weights = np.array([np.pi] + [0] * (32*(k+1)-1)) + np.random.normal(scale=eps, size=(32*(k+1),))
 gen_weights = tf.Variable(init_gen_weights)
-disc_weights = model.get_weights()
+init_disc_weights = model.trainable_weights
+disc_weights = []
+for i in range(len(init_disc_weights)):
+    disc_weights.append(tf.Variable(tf.convert_to_tensor(init_disc_weights[i])))
+
+
 opt = tf.keras.optimizers.SGD(0.1)
 
-cost = lambda: disc_cost(gen_weights, disc_weights)
+cost = lambda: disc_cost(disc_weights)
 
-print(len(data))
 for batch in data:
         dat = batch[0]
         for step in range(20):
             print(step)
-            opt.minimize(cost, gen_weights, disc_weights)
+            opt.minimize(cost, disc_weights)
             cost_val = cost().numpy()
             print("Step {}: cost = {}".format(step, cost_val))
