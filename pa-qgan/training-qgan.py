@@ -7,13 +7,25 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from sklearn.utils import shuffle
 
+qml.enable_tape()
 wires = range(32)
 API_KEY = "AIzaSyAkLyvGHAIGGm8kT5SbzJB0Wi7dCT_4kPQ"
+device_arn = "arn:aws:braket:::device/quantum-simulator/amazon/sv1"
 sim = remote_cirq.RemoteSimulator(API_KEY)
+my_bucket = "amazon-braket-080834" # the name of the bucket
+my_prefix = "QGAN_1" # the name of the folder in the bucket
+s3_folder = (my_bucket, my_prefix)
 dev = qml.device("cirq.simulator",
                  wires=32,
                  simulator=sim,
                  analytic=False)
+dev_remote = qml.device(
+    "braket.aws.qubit",
+    device_arn=device_arn,
+    wires=wires,
+    s3_destination_folder=s3_folder,
+    parallel=True,
+)
 data = np.load('data/preprocessed/prices_32_8.npy', allow_pickle=True)
 
 train = []
@@ -62,27 +74,31 @@ def train_discriminator(model, data, y):
     train_x = data
     train_y = y
 
-    for i in tqdm(range(len(data))):
-        set = data[i][0]
-        w = set[:32]
-        f = np.array(gen_circuit(w, gen_weights))
-        for i in f:
-            w = np.append(w,i)
-        np.append(train_x, [w])
-        np.append(train_y, 0)
+    # for i in tqdm(range(len(data))):
+    #     set = data[i][0]
+    #     w = set[:32]
+    #     f = np.array(gen_circuit(w, gen_weights))
+    #     for i in f:
+    #         w = np.append(w,i)
+    #     np.append(train_x, [w])
+    #     np.append(train_y, 0)
 
-    np.save('training-data/train_x', train_x)
-    np.save('training-data/train_y', train_y)
+    # np.save('train_x', train_x)
+    # np.save('train_y', train_y)
 
-    train_x = shuffle(train_x, train_y)
+    data = np.load('train_x.npy', allow_pickle=True)
+    data = np.load('train_y.npy', allow_pickle=True)
+
+    train_x, train_y = shuffle(train_x, train_y)
 
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    model.fit(train_x, train_y, epochs=10, validation_split=0.3)
+    model.fit(train_x, train_y, epochs=50, validation_split=0.3)
 
 def train_generator():
     opt = tf.keras.optimizers.SGD(0.1)
     cost = lambda: gen_cost(gen_weights)
     for batch in data:
+            global dat
             dat = batch[0]
             for step in range(20):
                 print(step)
