@@ -16,7 +16,7 @@ Google FLOQ <br>
 ## File Structure
 data/ - contains stock market data in sequences, and notbooks creating that data <br>
 qGAN/ - contains the implementation of qGANs on stock market data <br>
-QAOA/ - contains the implementation of QAOA for portfolio optimisation <br>
+QAOA-VQE/ - contains the implementation of QAOA and VQE for portfolio optimisation <br>
 testing-versions/ - contains files used for testing the main files
 
 ## References
