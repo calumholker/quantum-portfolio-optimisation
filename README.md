@@ -5,4 +5,4 @@ This is not to say that we want our assets to be in direct opposition with each 
 
 ![](./images/minimum_variance_frontier.jpg)
 
-The mean-variance portfolio optimization problem is a NP-Hard COP, making it computationally expensive for current classical computers to solve. Mathematically, we can represent this quadratic problem for n assets as:  ![](./images/Minimum_variance_problem.png)
+The mean-variance portfolio optimization problem is a NP-Hard COP, making it computationally expensive for current classical computers to solve. Mathematically, we can represent this quadratic problem for n assets as:  ![](./images/Minimum_variance_problem.png =20x)
