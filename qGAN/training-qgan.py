@@ -1,4 +1,6 @@
 import sys
+
+from tensorflow.keras import callbacks
 import remote_cirq
 import pennylane as qml
 import numpy as np
@@ -6,6 +8,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from sklearn.utils import shuffle
+from tensorflow.keras.callbacks import TensorBoard
 
 qml.enable_tape()
 wires = range(32)
@@ -51,7 +54,7 @@ def generator(w):
         qml.broadcast(unitary=qml.RY, pattern = 'single', wires = wires, parameters = w[(32*k):(32*(k+1))])
         qml.broadcast(unitary=qml.CZ, pattern = 'ring', wires=wires)
 
-@qml.qnode(dev, interface="tf")
+@qml.qnode(dev)
 def gen_circuit(array, gen_weights):
     qml.templates.AngleEmbedding(array, wires, rotation='Y')
     generator(gen_weights)
@@ -59,11 +62,14 @@ def gen_circuit(array, gen_weights):
 
 def prob_fake_true(array, gen_weights):
     w = array[:32]
-    f = np.array(gen_circuit(w, gen_weights))
+    try:
+        f = (gen_circuit(w, gen_weights))._value
+    except:
+        f = np.array((gen_circuit(w, gen_weights)))
     for i in f:
         w = np.append(w, i)
     tensor = tf.convert_to_tensor(np.array(w).reshape(1,1,40))
-    fake_disc_output = model(tensor)[0][0]
+    fake_disc_output = float(model(tensor)[0][0])
     prob_fake_true = (fake_disc_output + 1) / 2
     return prob_fake_true
 
@@ -91,28 +97,34 @@ def train_discriminator(model, data, y):
 
     train_x, train_y = shuffle(train_x, train_y)
 
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    model.fit(train_x, train_y, epochs=50, validation_split=0.3)
+    NAME = 'Discriminator_' 
 
-def train_generator():
-    opt = tf.keras.optimizers.SGD(0.1)
-    cost = lambda: gen_cost(gen_weights)
-    for batch in data:
+    tensorboard = TensorBoard(log_dir='logs/{}'.format(NAME))
+
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.fit(train_x, train_y, epochs=50, validation_split=0.3, callbacks=[tensorboard])
+    model.save('disc')
+
+def train_generator(gen_weights):
+    opt = qml.AdamOptimizer(0.1)
+    costs = np.array([])
+    for _ in tqdm(range(10)):
+        for i in tqdm(range(len(data))):
             global dat
-            dat = batch[0]
-            for step in range(20):
-                print(step)
-                opt.minimize(cost, gen_weights)
-                cost_val = cost().numpy()
-                print("Step {}: cost = {}".format(step, cost_val))
+            dat = data[i][0]
+            gen_weights, cost = opt.step_and_cost(lambda gen_weights: gen_cost(gen_weights), gen_weights)
+            np.append(costs, cost)
+            np.save(f'gen-weights/gen_weights_{_}_{i}', gen_weights)
+            np.save(f'costs/cost_{_}_{i}', costs)
+        
 
 eps = 1e-2
 k = 3
 init_gen_weights = np.array([np.pi] + [0] * (32*(k+1)-1)) + np.random.normal(scale=eps, size=(32*(k+1),))
-gen_weights = tf.Variable(init_gen_weights)
+# gen_weights = tf.Variable(init_gen_weights)
 
-train_discriminator(model, data, y)
-train_generator()
+# train_discriminator(model, data, y)
+# train_generator(gen_weights)
 
-np.save('models/generator-weights/gen_weights', gen_weights)
-model.save('models/discriminator/disc')
+# np.save('gen_weights', gen_weights)
+# model.save('disc')
