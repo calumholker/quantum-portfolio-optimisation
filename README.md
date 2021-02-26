@@ -23,5 +23,5 @@ testing-versions/ - contains files used for testing the main files
 [(1) PAGAN: Portfolio Analysis with Generative Adversarial Networks](https://arxiv.org/pdf/1909.10578.pdf) <br>
 [(2) Quantum Generative Adversarial Networks for learning and loading random distributions](https://www.nature.com/articles/s41534-019-0223-2.pdf) <br>
 [(3) Enhancing Combinatorial Optimization with Quantum Generative Models](https://www.zapatacomputing.com/wp-content/uploads/2020/12/2101.06250.pdf) <br>
-[(4) Improving Variational Quantum Optimization using CVaR] (https://arxiv.org/pdf/1907.04769.pdf) <br>
+[(4) Improving Variational Quantum Optimization using CVaR](https://arxiv.org/pdf/1907.04769.pdf) <br>
 [(5) Qiskit Aqua Portfolio Optimisation](https://qiskit.org/documentation/tutorials/finance/01_portfolio_optimization.html) <br>
