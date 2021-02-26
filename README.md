@@ -12,3 +12,5 @@ where the following notation is used:
 <img src="https://github.com/calumholker/quantum-portfolio-optimisation/blob/master/images/Minimum_variance_problem_notation.png" />
 
 For our implementation, we simplified the conditions such that all of the budget must be spent and normalized all equity values to 1. 
+
+The equality constraint ![](./images/equality_constraint.png) is mapped to a penalty term ![](./images/penalty_term.png) which is scaled by a parameter and subtracted from the objective function. The resulting problem can be mapped to a Hamiltonian whose ground state corresponds to the optimal solution. This notebook shows how to use the Variational Quantum Eigensolver (VQE) or the Quantum Approximate Optimization Algorithm (QAOA) to find the optimal solution for a given set of parameters.
