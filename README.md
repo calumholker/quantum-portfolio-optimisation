@@ -5,7 +5,7 @@ Submission for QHack open hackathon for team QLords <br><br>
 Blog Post: [Using Quantum Generative Adversarial Networks for Portfolio Optimisation](https://calumholker.medium.com/using-quantum-generative-adversarial-networks-for-portfolio-analysis-f8c56ac68fd2)
 
 ## Project Summary
-We use qGANs on stock market data to create a model that can predict future trends, and look at how that data can then be used to optimise portfolios.
+We use qGANs on stock market data to create a model that can predict future trends, and look at how that data can then be used to optimise portfolios. More details on both of these implementations can be found within the READMEs in their respective directores
 
 ## Built With
 PennyLane <br>
