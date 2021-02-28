@@ -123,10 +123,10 @@ def train_generator(gen_weights):
             np.save(f'gen-weights/gen_weights_{_}_{i}', gen_weights)
             np.save(f'costs/cost_{_}_{i}', costs)
         
-
-eps = 1e-2
-k = 3
-init_gen_weights = np.array([np.pi] + [0] * (32*(k+1)-1)) + np.random.normal(scale=eps, size=(32*(k+1),))
+"""Required to set initial weights for data, example commented below"""
+# eps = 1e-2
+# k = 3
+# init_gen_weights = np.array([np.pi] + [0] * (32*(k+1)-1)) + np.random.normal(scale=eps, size=(32*(k+1),))
 gen_weights = tf.Variable(init_gen_weights)
 
 # Can be looped for more iterations
